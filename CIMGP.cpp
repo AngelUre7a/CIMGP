@@ -37,7 +37,7 @@ int main()
 		ventana.display(botonInicioPresionado ? juego : inicio);//cargar imagen en la ventana
 		//ventana.wait();//cargar ventana hasta que el usuario se salga
 
-		//if (lobby) {
+		if (lobby) {
 		
 
 		if (ventana.button() && ventana.mouse_x() >= 550 && ventana.mouse_x() <= 725 && ventana.mouse_y() >= 470 && ventana.mouse_y() <= 525)
@@ -52,7 +52,7 @@ int main()
 			lobby = false;
 			return 0;
 			}
-		//}
+		}
 		
 	}
 	return 0;
