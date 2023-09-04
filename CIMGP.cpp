@@ -1,22 +1,28 @@
 #include <iostream>
 #include <Magick++.h>
 #include "CImg.h"
+#include <vector>
+#include <ctime>
+#include <cstdlib>
+#include <chrono>
 
 using namespace std;
 using namespace cimg_library;
 
-/* render(CImgDisplay* ventana) {
-	CImg<unsigned char> play("inicio.jpg");
-	ventana->flush(play);
-
+struct Meteorito {
+	int x;
+	int y;
+	int velocidadCaida;
+};
+//generar un numero aleatorio entre 0 y 1720
+int min = 1;
+int max = 1280;
+int GenerarAleatorio(int min,int max) {
+	return 0 + rand() % (max - min + 1);
 }
-*/
+
 int main()
 {
-	//temporizador
-	//const int tiempoMinimo = 5000;//5ms
-	//const int tiempoMaximo = 10000;//10ms
-	//int tiempoAleatorio = GenerarAleatorio(tiempoMinimo, tiempoMaximo);
 	const int ancho_ventana = 1280;
 	const int altura_ventana = 720;
 	bool botonInicioPresionado = false;
@@ -30,15 +36,53 @@ int main()
 	inicio.resize(ancho_ventana, altura_ventana);//escalar el fondo con la ventana
 	ventana.paint();
 
+	vector<Meteorito>meteoritos;
+
+	srand(static_cast<unsigned int>(time(nullptr)));
+
+	//se crea una variable para el tiempo inicial de cada meteorito
+	auto tiempoInicial = chrono::high_resolution_clock::now();//chrono almacena el tiempo actual en la que ejecuta el programa
+	int tiempoMinimo = 5000; // 5 segundos
+	int tiempoMaximo = 10000;// 10 segundos
+
+	CImg<unsigned char>meteorito_image("meteorito.png");
+	
 	while (!ventana.is_closed())
 	{
 		int x = ventana.mouse_x();
 		int y = ventana.mouse_y();
-		ventana.display(botonInicioPresionado ? juego : inicio);//cargar imagen en la ventana
+
+		auto tiempoActual = chrono::high_resolution_clock::now();
+		auto tiempoTranscurrido = chrono::duration_cast<chrono::milliseconds>(tiempoActual - tiempoInicial).count();
+
+		if (tiempoTranscurrido >= tiempoMinimo) {//generar un nuevo meteorito
+			Meteorito nuevoMeteorito;
+			nuevoMeteorito.x = GenerarAleatorio(0, ancho_ventana);
+			nuevoMeteorito.y = 0;
+			nuevoMeteorito.velocidadCaida = GenerarAleatorio(1, 5);//velocidad del meteorito
+			meteoritos.push_back(nuevoMeteorito);
+
+			//reiniciar el temp.
+			tiempoInicial = tiempoActual;
+			tiempoMinimo = GenerarAleatorio(5000,10000);
+		}
+
+		for (Meteorito& meteorito : meteoritos)
+		{
+			meteorito.y += meteorito.velocidadCaida;
+		}
+
+			ventana.display(botonInicioPresionado ? juego : inicio);//cargar imagen en la ventana
 		//ventana.wait();//cargar ventana hasta que el usuario se salga
 
 		if (lobby) {
+
+
 		
+			for (const Meteorito& meteorito : meteoritos) {
+				juego.draw_image(meteorito.x, meteorito.y, meteorito_image);
+				cout << "meteorito en la posicion x: " << meteorito.x << " y en la posicion y: " << meteorito.y;
+			}
 
 		if (ventana.button() && ventana.mouse_x() >= 550 && ventana.mouse_x() <= 725 && ventana.mouse_y() >= 470 && ventana.mouse_y() <= 525)
 		{
