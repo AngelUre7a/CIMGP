@@ -10,9 +10,9 @@ using namespace std;
 using namespace cimg_library;
 
 
-//generar un numero aleatorio entre 0 y 1720
+//generar un numero aleatorio entre 0 y 600
 int min = 1;
-int max = 1280;
+int max = 600;
 int GenerarAleatorio(int min, int max) {
 	return 0 + rand() % (max - min + 1);
 }
@@ -32,9 +32,10 @@ struct Meteorito {
 		meteorito_image.resize(50, 50);
 
 	}
-	
-	void caer(){
+
+	void caer() {
 		this->y += 1;
+
 	}
 
 };
@@ -45,6 +46,13 @@ int main()
 	const int altura_ventana = 720;
 	bool botonInicioPresionado = false;
 	bool lobby = true;
+	int vida_x = 10;
+
+	vector<CImg<unsigned char>>vidas;
+	for (int i = 0; i < 10; i++) {
+		CImg<unsigned char>vida(30, 30, 1, 3, 0, 255, 0);
+		vidas.push_back(vida);
+	}
 
 	CImgDisplay ventana(ancho_ventana, altura_ventana, "Space X");//creacion de la ventana
 	//ventana.draw_rectangle(457, 393, 618, 455,red);
@@ -92,9 +100,6 @@ int main()
 
 		if (lobby) {
 
-
-
-
 			if (ventana.button() && ventana.mouse_x() >= 550 && ventana.mouse_x() <= 725 && ventana.mouse_y() >= 470 && ventana.mouse_y() <= 525)
 			{
 				botonInicioPresionado = !botonInicioPresionado;
@@ -108,26 +113,56 @@ int main()
 				return 0;
 			}
 		}
-		else {
+		else
+		{
+			for (const auto& vida : vidas) {
+				juego.draw_image(vida_x, 10, vida);
+				vida_x += 10;
+			}
+
 			for (Meteorito& meteorito : meteoritos) {
-				if (!meteorito.render) {
-					juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
-					meteorito.render = true;
+				//fill(0);
+				ventana.display(juego);
+				for (int i = 0; i < meteoritos.size(); i++) {
+					Meteorito& meteorito = meteoritos[i];
+					if (!meteorito.render) {
+						juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
+						meteorito.render = true;
+					}
+					else {
+						//Borrar el dibujo anterior del meteorito (dibujar un rectángulo blanco en su ubicación anterior)
+						//juego.draw_rectangle(meteorito.x, meteorito.y, meteorito.x + 50, meteorito.y + 50, cimg_library::CImg<unsigned char>::background(255, 255, 255));
+
+						meteorito.caer();
+
+						// Dibujar el meteorito en su nueva posición
+						juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
+
+						if (meteorito.y >= altura_ventana) {
+							if (!vidas.empty()) {
+								vidas.pop_back();
+							}
+							meteoritos.erase(meteoritos.begin() + i);
+							i--;
+						}
+
+					}
 				}
-				else {
-					//Borrar el dibujo anterior del meteorito (dibujar un rectángulo blanco en su ubicación anterior)
-				   //juego.draw_rectangle(meteorito.x, meteorito.y, meteorito.x + 50, meteorito.y + 50, cimg_library::CImg<unsigned char>::background(255, 255, 255));
 
-					meteorito.caer();
+				int vida_x = 10;
+				for (const auto& vida : vidas) {
+					juego.draw_image(vida_x, 10, vida);
+					vida_x += 40;
+				}
 
-					// Dibujar el meteorito en su nueva posición
-					juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
-
+				ventana.display(juego);
+				if (vidas.empty()) {
+					cout << "Game Over" << endl;
+					return 0;
 				}
 			}
+			cimg::wait(50);
 		}
-
-		cimg::wait(50);
 	}
-		return 0;
+	return 0;
 }
