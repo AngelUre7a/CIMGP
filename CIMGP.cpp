@@ -23,7 +23,6 @@ int GenerarAleatorio(int minscreen, int maxscreen) {
 struct Meteorito {
 	int x;
 	int y;
-	int velocidadCaida;
 	CImg<unsigned char> meteorito_image;
 	bool render = false;//imagen cargada en display
 
@@ -36,7 +35,7 @@ struct Meteorito {
 	}
 
 	void caer() {
-		this->y += 1;
+		this->y += 10;
 	}
 	void borrarMeteorito() {
 		meteorito_image.fill(0);
@@ -62,8 +61,12 @@ int main()
 	CImg<unsigned char> inicio("inicio2.png");//cargar una imagen del equipo
 	CImg<unsigned char> juego("juego.jpg");
 	CImg<unsigned char> play("PLAY.jpg");
+	CImg<unsigned char> vida("VIDA.jpg");
 	inicio.resize(ancho_ventana, altura_ventana);//escalar el fondo con la ventana
 	ventana.paint();
+
+	int vidasRestantes = 10;
+	vector<CImg<unsigned char>> vidas(10, vida);
 
 	vector<Meteorito>meteoritos;
 
@@ -119,6 +122,13 @@ int main()
 			}
 		}
 		else {
+			int vidaX = 10; // Coordenada x inicial de las vidas
+			int vidaY = 10; // Coordenada y fija de las vidas
+			for (const auto& vidaImage : vidas) {
+				juego.draw_image(vidaX, vidaY, vidaImage);
+				vidaX += 30; // Ajustar la posición para la siguiente vida
+			}
+
 
 			chrono::steady_clock::time_point currentTime = chrono::steady_clock::now();
 			int tiempoTrans = chrono::duration_cast<chrono::seconds>(currentTime - startTime).count();
@@ -143,7 +153,31 @@ int main()
 					// Dibujar el meteorito en su nueva posición
 					juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
 					meteorito.caer();
+					//meteoritos.erase(meteoritos.begin()+1);
+					for (int i = 0; i < meteoritos.size(); i++) {
+						Meteorito& meteorito = meteoritos[i];
+						//el meteorito ya llego abajo
+						if (meteorito.y >= altura_ventana) {
+							if (vidasRestantes>0) {//si el vector aun no esta vacido
+								vidasRestantes--;//restar una vida(eliminar un vector)
+								vidas.pop_back();
+								vida.resize(10-i, 10);
+							}
+							//borrar meteorito
+							meteoritos.erase(meteoritos.begin() + i);
 
+							continue;
+						}
+
+					}
+					if (vidasRestantes == 0) {
+					CImg<unsigned char>gameover(ancho_ventana, altura_ventana, 1, 3);
+					gameover.draw_text(ancho_ventana / 3, altura_ventana / 2, "Game Over", negro, 50);
+					gameover.display(ventana);
+					this_thread::sleep_for(chrono::seconds(3));
+					ventana.display(inicio);
+					lobby = true;
+					}
 
 				}//else
 			}//for
