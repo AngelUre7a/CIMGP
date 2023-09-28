@@ -1,22 +1,25 @@
 #include <iostream>
-#include <Magick++.h>
 #include "CImg.h"
 #include <vector>
 #include <ctime>
 #include <cstdlib>
 #include <chrono>
-
+#include <thread>
 using namespace std;
 using namespace cimg_library;
 
 
-//generar un numero aleatorio entre 0 y 600
-int min = 1;
-int max = 600;
-int GenerarAleatorio(int min, int max) {
-	return 0 + rand() % (max - min + 1);
-}
+//colores
+const unsigned char negro[] = { 0,0,0 };
+const unsigned char blanco[] = { 255,255,255 };
 
+
+//generar un numero aleatorio entre 0 y 1720
+int minscreen = 0;
+int maxscreen = 1000;
+int GenerarAleatorio(int minscreen, int maxscreen) {
+	return 0 + rand() % (maxscreen - minscreen + 1);
+}
 struct Meteorito {
 	int x;
 	int y;
@@ -24,10 +27,9 @@ struct Meteorito {
 	CImg<unsigned char> meteorito_image;
 	bool render = false;//imagen cargada en display
 
-	Meteorito(const char* imagePath, int ancho_ventana) : meteorito_image(imagePath, ancho_ventana) {
-		this->x = GenerarAleatorio(0, ancho_ventana);
-		this->y = 0;
-		this->velocidadCaida = GenerarAleatorio(1, 5);//velocidad del meteorito
+	Meteorito(const char* imagePath, int maxscreen) : meteorito_image(imagePath, maxscreen) {
+		this->x = GenerarAleatorio(0, 1670);
+		this->y = 20;
 		this->meteorito_image = imagePath;
 		meteorito_image.resize(50, 50);
 
@@ -35,10 +37,17 @@ struct Meteorito {
 
 	void caer() {
 		this->y += 1;
+	}
+	void borrarMeteorito() {
+		meteorito_image.fill(0);
 
 	}
-
 };
+
+
+//TEMPORIZADOR
+chrono::steady_clock::time_point startTime = chrono::steady_clock::now();
+int tiempoLimiteSegundos = 120;// 2 minutos
 
 int main()
 {
@@ -46,13 +55,7 @@ int main()
 	const int altura_ventana = 720;
 	bool botonInicioPresionado = false;
 	bool lobby = true;
-	int vida_x = 10;
 
-	vector<CImg<unsigned char>>vidas;
-	for (int i = 0; i < 10; i++) {
-		CImg<unsigned char>vida(30, 30, 1, 3, 0, 255, 0);
-		vidas.push_back(vida);
-	}
 
 	CImgDisplay ventana(ancho_ventana, altura_ventana, "Space X");//creacion de la ventana
 	//ventana.draw_rectangle(457, 393, 618, 455,red);
@@ -81,88 +84,71 @@ int main()
 
 		if (tiempoTranscurrido >= tiempoMinimo) {//generar un nuevo meteorito
 			const char* imagePath = "meteorito.png";
-			int ancho_ventana = 800; // Supongamos que el ancho de la ventana es 800
+			int ancho_ventana = 600; // Supongamos que el ancho de la ventana es 600
 			Meteorito miMeteorito(imagePath, ancho_ventana);
 			meteoritos.push_back(miMeteorito);
 
 			//reiniciar el temp.
 			tiempoInicial = tiempoActual;
 			tiempoMinimo = GenerarAleatorio(5000, 10000);
-		}
 
+		}
+		else if (tiempoTranscurrido < tiempoMinimo) {
+
+		}
 		/*for (Meteorito& meteorito : meteoritos)
 		{
 			meteorito.y += 1;
 		}*/
 
 		ventana.display(botonInicioPresionado ? juego : inicio);//cargar imagen en la ventana
-		//ventana.wait();//cargar ventana hasta que el usuario se salga
+		//ventana.wait();
 
 		if (lobby) {
-
-			if (ventana.button() && ventana.mouse_x() >= 550 && ventana.mouse_x() <= 725 && ventana.mouse_y() >= 470 && ventana.mouse_y() <= 525)
+			if (ventana.button() && ventana.mouse_x() >= 550 && ventana.mouse_x() <= 725 && ventana.mouse_y() >= 470 && ventana.mouse_y() <= 525)//BOTON jugar
 			{
 				botonInicioPresionado = !botonInicioPresionado;
 				lobby = false;
 
 			}
 
-			if (ventana.button() && ventana.mouse_x() >= 570 && ventana.mouse_x() <= 705 && ventana.mouse_y() >= 544 && ventana.mouse_y() <= 583)
+			if (ventana.button() && ventana.mouse_x() >= 570 && ventana.mouse_x() <= 705 && ventana.mouse_y() >= 544 && ventana.mouse_y() <= 583)//BOTON salir
 			{
 				lobby = false;
 				return 0;
 			}
 		}
-		else
-		{
-			for (const auto& vida : vidas) {
-				juego.draw_image(vida_x, 10, vida);
-				vida_x += 10;
+		else {
+
+			chrono::steady_clock::time_point currentTime = chrono::steady_clock::now();
+			int tiempoTrans = chrono::duration_cast<chrono::seconds>(currentTime - startTime).count();
+			tiempoLimiteSegundos = max(0, 120 - tiempoTrans);
+			if (tiempoLimiteSegundos <= 0) {
+				CImg<unsigned char>finaljuego(ancho_ventana, altura_ventana, 1, 3);
+				finaljuego.draw_text(ancho_ventana / 3, altura_ventana / 2, "Ganaste!!", negro, 50);
+				finaljuego.display(ventana);
+				this_thread::sleep_for(chrono::seconds(6));
+				ventana.display(inicio);
+				lobby = true;
+
 			}
 
 			for (Meteorito& meteorito : meteoritos) {
-				//fill(0);
-				ventana.display(juego);
-				for (int i = 0; i < meteoritos.size(); i++) {
-					Meteorito& meteorito = meteoritos[i];
-					if (!meteorito.render) {
-						juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
-						meteorito.render = true;
-					}
-					else {
-						//Borrar el dibujo anterior del meteorito (dibujar un rectángulo blanco en su ubicación anterior)
-						//juego.draw_rectangle(meteorito.x, meteorito.y, meteorito.x + 50, meteorito.y + 50, cimg_library::CImg<unsigned char>::background(255, 255, 255));
-
-						meteorito.caer();
-
-						// Dibujar el meteorito en su nueva posición
-						juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
-
-						if (meteorito.y >= altura_ventana) {
-							if (!vidas.empty()) {
-								vidas.pop_back();
-							}
-							meteoritos.erase(meteoritos.begin() + i);
-							i--;
-						}
-
-					}
+				cout << "meteorito generado en la pos x: " << meteorito.x << "." << endl << endl << endl << endl << endl;
+				if (!meteorito.render) {
+					juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
+					meteorito.render = true;
 				}
+				else {
+					// Dibujar el meteorito en su nueva posición
+					juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
+					meteorito.caer();
 
-				int vida_x = 10;
-				for (const auto& vida : vidas) {
-					juego.draw_image(vida_x, 10, vida);
-					vida_x += 40;
-				}
 
-				ventana.display(juego);
-				if (vidas.empty()) {
-					cout << "Game Over" << endl;
-					return 0;
-				}
-			}
-			cimg::wait(50);
-		}
-	}
+				}//else
+			}//for
+		}//else
+		cimg::wait(50);
+	}//while
 	return 0;
-}
+}//main
