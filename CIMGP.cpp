@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include "CImg.h"
 #include <vector>
 #include <ctime>
@@ -60,9 +61,11 @@ struct Bala {
 
 
 
-//TEMPORIZADOR
-chrono::steady_clock::time_point startTime = chrono::steady_clock::now();
-int tiempoLimiteSegundos = 120;// 2 minutos
+float angulo = 90.0f; // Ángulo inicial DE LA NAVE
+float intervaloDelAngulo = 5.0f; // cada presionada de la tecla suma o resta 0.5 al angulo
+float anguloMaximo = 170.0f; // maximo del angulo
+float anguloMinimo = 10.0f; // minimo del angulo
+
 
 int main()
 {
@@ -86,12 +89,22 @@ int main()
 	CImg<unsigned char> juegoNuevo("juego.jpg");
 	CImg<unsigned char> play("PLAY.jpg");
 	CImg<unsigned char> vida("VIDA.jpg");
+
+	CImg<unsigned char> nave("nave.png");
+	nave.resize(70,70);
+
 	int radio = 25;
 	inicio.resize(ancho_ventana, altura_ventana);//escalar el fondo con la ventana
+	juego.resize(ancho_ventana, altura_ventana);//escalar el fondo con la ventana
+	juegoNuevo.resize(ancho_ventana, altura_ventana);//escalar el fondo con la ventana
 	ventana.paint();
 
 	int vidasRestantes = 10;
-	vector<CImg<unsigned char>> vidas(10, vida);
+	vector<CImg<unsigned char>> vidas(vidasRestantes, vida);
+
+	for (int i = 0; i < vidasRestantes; i++) {
+		vidas[i].resize(20, 20);
+	}
 
 	vector<Meteorito>meteoritos;
 
@@ -105,10 +118,13 @@ int main()
 
 	int numRocks = meteoritos.size();
 
-
+	//TEMPORIZADOR
+	chrono::steady_clock::time_point startTime;
 
 	while (!ventana.is_closed())
 	{
+
+
 		int x = ventana.mouse_x();
 		int y = ventana.mouse_y();
 
@@ -117,8 +133,8 @@ int main()
 
 		if (tiempoTranscurrido >= tiempoMinimo) {//generar un nuevo meteorito
 			const char* imagePath = "meteorito.png";
-			int ancho_ventana = 600; // Supongamos que el ancho de la ventana es 600
-			Meteorito miMeteorito(imagePath, ancho_ventana, GenerarAleatorio(0, 1200));
+			//el ancho de la ventana es 1200
+			Meteorito miMeteorito(imagePath, ancho_ventana, GenerarAleatorio(0, ancho_ventana - 10));
 			// Verificar si el meteorito ya se agregó antes
 			if (!miMeteorito.render) {
 				meteoritos.push_back(miMeteorito);
@@ -146,6 +162,7 @@ int main()
 			{
 				botonInicioPresionado = !botonInicioPresionado;
 				lobby = false;
+				startTime = chrono::steady_clock::now();
 
 			}
 
@@ -157,20 +174,54 @@ int main()
 		}
 		else {
 
+			//int tiempoLimiteSegundos = 120;// 2 minutos
 			//ventana.display(juego);
 
 			juego.fill(juegoNuevo);
 
+			juego.draw_rectangle(10, altura_ventana - 100, ancho_ventana - 10, altura_ventana - 10, blanco);
+
+			int naveY = altura_ventana - 100;
+			int naveX = (ancho_ventana / 2 - 25);
+
+			//juego.draw_image(naveX, naveY, nave);
+			//nave.get_rotate(90);
 			//------------------------------------------------------------------
 
 			clock_t tiempoActual = clock();
-			if ((tiempoActual - tiempoUltimoDisparo) * 1000 / CLOCKS_PER_SEC >= tiempoDeRetrasoEntreDisparos) {
+			//if ((tiempoActual - tiempoUltimoDisparo) * 1000 / CLOCKS_PER_SEC >= tiempoDeRetrasoEntreDisparos) {
 				//si espacio esta presionado
-				if (_kbhit() && _getch() == ' ') {        //kbhit verifica si una tecla esta disponible
-					balas.push_back(Bala(600, 700, 2));	  //getch se usa para leer la tecla que se presiona
-					tiempoUltimoDisparo = tiempoActual;
+
+			//}
+
+			//----------------------------------------------------TECLADO----------------------
+			char tecla;
+			if (_kbhit()) {
+				tecla = _getch();
+
+				if (tecla == 'd' || tecla == 'D') {
+					// Rotar hacia la izquierda
+					angulo += intervaloDelAngulo; // Incrementa el ángulo
+					// Limitar el ángulo máximo
+					angulo = min(angulo, anguloMaximo);
+				}
+				else if (tecla == 'a' || tecla == 'A') {
+					// Rotar hacia la derecha
+					angulo -= intervaloDelAngulo; // Decrementa el ángulo
+					// Limitar el ángulo mínimo
+					angulo = max(angulo, anguloMinimo);
+				}
+				else if (tecla == 27) { // 27 es el código ASCII para la tecla Esc
+					break; // Salir del bucle si se presiona Esc
 				}
 			}
+
+			// Dibujar la imagen de la nave con el ángulo actual
+			CImg<unsigned char> nave_rotada = nave.get_rotate(angulo);
+			juego.draw_image(naveX, naveY, nave_rotada);
+			//---------------------------------------------------- TECLADO FIN ----------------------
+
+
 
 
 			for (Bala& bala : balas) {
@@ -179,30 +230,39 @@ int main()
 			}
 
 			int vidaX = 10; // Coordenada x inicial de las vidas
-			int vidaY = 10; // Coordenada y fija de las vidas
+			int vidaY = altura_ventana - 30; // Coordenada y fija de las vidas
 			for (const auto& vidaImage : vidas) {
 				juego.draw_image(vidaX, vidaY, vidaImage);
+				//vida.resize(10 , altura_ventana - 10);
 				vidaX += 30; // Ajustar la posición para la siguiente vida
 			}
+			string anguloActual = "Angulo de  disparo: " + to_string(angulo);
+			juego.draw_text(ancho_ventana / 3, altura_ventana - 30, anguloActual.c_str(), angulo <= 30 ? rojo : negro, 100, 1, 25);
 
 
 			chrono::steady_clock::time_point currentTime = chrono::steady_clock::now();
 			int tiempoTrans = chrono::duration_cast<chrono::seconds>(currentTime - startTime).count();
-			tiempoLimiteSegundos = max(0, 120 - tiempoTrans);
-			if (tiempoLimiteSegundos <= 0) {
+			// Calcula el tiempo restante en segundos
+			int tiempoRestante = max(0, 120 - tiempoTrans);
+			string tiempoRestanteStr = to_string(tiempoRestante);
+
+			// Dibuja el tiempo restante en la ventana del juego
+			juego.draw_text(ancho_ventana - 50, altura_ventana - 30, +tiempoRestanteStr.c_str(), tiempoRestante <= 30 ? rojo : negro, 100, 1, 25);
+			//juego.draw_text(ancho_ventana / 3, altura_ventana / 2, "Game Over", negro, 50);
+
+			if (tiempoRestante <= 0) {
 				CImg<unsigned char>finaljuego(ancho_ventana, altura_ventana, 1, 3);
 				finaljuego.draw_text(ancho_ventana / 3, altura_ventana / 2, "Ganaste!!", negro, 50);
 				finaljuego.display(ventana);
 				this_thread::sleep_for(chrono::seconds(6));
 				ventana.display(inicio);
 				lobby = true;
-				break;
 
 			}
 
 			//genera los meteoritos
 			for (Meteorito& meteorito : meteoritos) {
-				cout << "meteorito generado en la pos x: " << meteorito.x << "." << endl << endl << endl << endl << endl;
+				//cout << "meteorito generado en la pos x: " << meteorito.x << "." << endl << endl << endl << endl << endl;
 				if (!meteorito.render) {
 					juego.draw_circle(meteorito.x, meteorito.y, 10, rojo);
 					meteorito.render = true;
@@ -225,8 +285,8 @@ int main()
 					//meteoritos.erase(meteoritos.begin()+1);
 					for (int i = 0; i < meteoritos.size(); i++) {
 						Meteorito& meteorito = meteoritos[i];
-						//el meteorito ya llego abajo
-						if (meteorito.y >= 300) {
+						//el meteorito ya llego abajo //  altura_ventana - 100 = EL FINAL DE ABAJO - 100 PIXELES
+						if (meteorito.y >= altura_ventana - 100) {
 							if (vidasRestantes > 0) {//si el vector aun no esta vacido
 								vidasRestantes--;//restar una vida(eliminar un vector)
 								vidas.pop_back();
@@ -246,7 +306,6 @@ int main()
 						this_thread::sleep_for(chrono::seconds(3));
 						ventana.display(inicio);
 						lobby = true;
-						break;
 					}
 
 				}//else
