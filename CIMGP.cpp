@@ -7,6 +7,7 @@
 #include <chrono>
 #include <thread>
 #include <conio.h>
+#define Pi 3.14159265
 using namespace std;
 using namespace cimg_library;
 
@@ -50,19 +51,21 @@ struct Bala {
 	int y;
 	int velocidad;
 
-	Bala(int _x, int _y, int _velocidad) : x(_x), y(_y), velocidad(_velocidad) {
-		this->x = 600;
-		this->y = 700;
+	Bala() : x(0), y(0), velocidad(0) {
+	
+	
 	}
+		//this->x = 600;
+		//this->y = 700;
 	void disparo() {
 		this->y -= 2;
 	}
 };
 
 
-
+//-----------------------------------------------V A R I A B L E S   P A R A   L O S   Á N G U L O S--------------------------------------------------------------------------------------------
 float angulo = 90.0f; // Ángulo inicial DE LA NAVE
-float intervaloDelAngulo = 5.0f; // cada presionada de la tecla suma o resta 0.5 al angulo
+float intervaloDelAngulo = 0.5f; // cada presionada de la tecla suma o resta 0.5 al angulo
 float anguloMaximo = 170.0f; // maximo del angulo
 float anguloMinimo = 10.0f; // minimo del angulo
 
@@ -75,10 +78,9 @@ int main()
 	bool lobby = true;
 
 	//balas
-	vector<Bala>balas;
-	bool dispararBala = false;
-	clock_t tiempoUltimoDisparo = 0;
-	const int tiempoDeRetrasoEntreDisparos = 100;
+	vector<Bala>balas;//vector para las balas
+	
+
 	//chrono::steady_clock::time_point tiempoUltimoDisparo;
 
 
@@ -92,7 +94,6 @@ int main()
 
 	CImg<unsigned char> nave("nave.png");
 	nave.resize(70,70);
-
 	int radio = 25;
 	inicio.resize(ancho_ventana, altura_ventana);//escalar el fondo con la ventana
 	juego.resize(ancho_ventana, altura_ventana);//escalar el fondo con la ventana
@@ -111,10 +112,9 @@ int main()
 	srand(static_cast<unsigned int>(time(nullptr)));
 
 	//se crea una variable para el tiempo inicial de cada meteorito
-	auto tiempoInicial = chrono::high_resolution_clock::now();//chrono almacena el tiempo actual en la que ejecuta el programa
+	auto tiempoInicial = chrono::high_resolution_clock::now();//chrono almacena el tiempo actual en la que se da PLAY
 	int tiempoMinimo = 5000; // 5 segundos
 	int tiempoMaximo = 10000;// 10 segundos
-
 
 	int numRocks = meteoritos.size();
 
@@ -128,27 +128,7 @@ int main()
 		int x = ventana.mouse_x();
 		int y = ventana.mouse_y();
 
-		auto tiempoActual = chrono::high_resolution_clock::now();
-		auto tiempoTranscurrido = chrono::duration_cast<chrono::milliseconds>(tiempoActual - tiempoInicial).count();
-
-		if (tiempoTranscurrido >= tiempoMinimo) {//generar un nuevo meteorito
-			const char* imagePath = "meteorito.png";
-			//el ancho de la ventana es 1200
-			Meteorito miMeteorito(imagePath, ancho_ventana, GenerarAleatorio(0, ancho_ventana - 10));
-			// Verificar si el meteorito ya se agregó antes
-			if (!miMeteorito.render) {
-				meteoritos.push_back(miMeteorito);
-				miMeteorito.render = true; // Marcar como agregado
-			}
-
-			//reiniciar el temp.
-			tiempoInicial = tiempoActual;
-			tiempoMinimo = GenerarAleatorio(5000, 10000);
-
-		}
-		else if (tiempoTranscurrido < tiempoMinimo) {
-
-		}
+		
 		/*for (Meteorito& meteorito : meteoritos)
 		{
 			meteorito.y += 1;
@@ -174,19 +154,47 @@ int main()
 		}
 		else {
 
-			//int tiempoLimiteSegundos = 120;// 2 minutos
-			//ventana.display(juego);
+			//-------------------------------------------------------G E N E R A C I O N   D E   M E T E O R I T O S-----------------------------------------------------------------------------------------------------------------------
+
+			auto tiempoActualPlay = chrono::high_resolution_clock::now();
+			auto tiempoTranscurrido = chrono::duration_cast<chrono::milliseconds>(tiempoActualPlay - tiempoInicial).count();
+
+			if (tiempoTranscurrido >= tiempoMinimo) {//generar un nuevo meteorito
+				const char* imagePath = "meteorito.png";
+				//el ancho de la ventana es 1200
+				Meteorito miMeteorito(imagePath, ancho_ventana, GenerarAleatorio(0, ancho_ventana - 10));
+				// Verificar si el meteorito ya se agregó antes
+				if (!miMeteorito.render) {
+					meteoritos.push_back(miMeteorito);
+					miMeteorito.render = true; // Marcar como agregado
+				}
+
+				//reiniciar el temp.
+				tiempoInicial = tiempoActualPlay;
+				tiempoMinimo = GenerarAleatorio(5000, 10000);
+
+			}
+			else if (tiempoTranscurrido < tiempoMinimo) {
+
+			}
+
+			//------------------------------------------------------F I N   D E   G E N E R A C I O N   D E   M E T E O R I T O S------------------------------------------------------------------------------------------------------------------------
+
+						//int tiempoLimiteSegundos = 120;// 2 minutos
+						//ventana.display(juego);
 
 			juego.fill(juegoNuevo);
 
-			juego.draw_rectangle(10, altura_ventana - 100, ancho_ventana - 10, altura_ventana - 10, blanco);
+			juego.draw_rectangle(10, altura_ventana - 50, ancho_ventana - 10, altura_ventana - 10, blanco);//dibuja el rectangle blanco de abajo
 
+
+			//COORDENADAS DE LA NAVE
 			int naveY = altura_ventana - 100;
 			int naveX = (ancho_ventana / 2 - 25);
 
 			//juego.draw_image(naveX, naveY, nave);
 			//nave.get_rotate(90);
-			//------------------------------------------------------------------
+			//-------------------------------------------------------------------------------------------------------------------------------
 
 			clock_t tiempoActual = clock();
 			//if ((tiempoActual - tiempoUltimoDisparo) * 1000 / CLOCKS_PER_SEC >= tiempoDeRetrasoEntreDisparos) {
@@ -194,50 +202,113 @@ int main()
 
 			//}
 
-			//----------------------------------------------------TECLADO----------------------
-			char tecla;
-			if (_kbhit()) {
-				tecla = _getch();
+			//----------------------------------------------------T E C L A D O--------------------------------------------------------
+			//char tecla;
+			//if (_kbhit()) {
+				//tecla = _getch();
+			char tecla = ventana.key();
 
-				if (tecla == 'd' || tecla == 'D') {
-					// Rotar hacia la izquierda
-					angulo += intervaloDelAngulo; // Incrementa el ángulo
-					// Limitar el ángulo máximo
-					angulo = min(angulo, anguloMaximo);
-				}
-				else if (tecla == 'a' || tecla == 'A') {
-					// Rotar hacia la derecha
-					angulo -= intervaloDelAngulo; // Decrementa el ángulo
-					// Limitar el ángulo mínimo
-					angulo = max(angulo, anguloMinimo);
-				}
-				else if (tecla == 27) { // 27 es el código ASCII para la tecla Esc
-					break; // Salir del bucle si se presiona Esc
-				}
+			if (tecla == ventana.keycode("ARROWRIGHT")) {//"ARROWRIGHT" verifica si se pulso la tecla de la flecha derecha, segun la libreria CIMG
+				// Rotar hacia la izquierda
+				angulo += intervaloDelAngulo; // Incrementa el ángulo
+				// Limitar el ángulo máximo
+				angulo = min(angulo, anguloMaximo);
 			}
+			else if (tecla == ventana.keycode("ARROWLEFT")) {//"ARROWLEFT" verifica si se pulso la tecla de la flecha izquierda, segun la libreria CIMG
+				// Rotar hacia la derecha
+				angulo -= intervaloDelAngulo; // Decrementa el ángulo
+				// Limitar el ángulo mínimo
+				angulo = max(angulo, anguloMinimo);
+			}
+			else if (tecla == ventana.keycode("ESC")) { //"ESC" verifica si se pulso la tecla ESC, segun la libreria CIMG
+				break; // Salir del bucle si se presiona Esc
+			}
+			//if (tecla == 'd' || tecla == 'D') {
+				//	// Rotar hacia la izquierda
+				//	angulo += intervaloDelAngulo; // Incrementa el ángulo
+				//	// Limitar el ángulo máximo
+				//	angulo = min(angulo, anguloMaximo);
+				//}
+				//else if (tecla == 'a' || tecla == 'A') {
+				//	// Rotar hacia la derecha
+				//	angulo -= intervaloDelAngulo; // Decrementa el ángulo
+				//	// Limitar el ángulo mínimo
+				//	angulo = max(angulo, anguloMinimo);
+				//}
+				//else if (tecla == 27) { // 27 es el código ASCII para la tecla Esc
+				//	break; // Salir del bucle si se presiona Esc
+				//}
+
 
 			// Dibujar la imagen de la nave con el ángulo actual
 			CImg<unsigned char> nave_rotada = nave.get_rotate(angulo);
 			juego.draw_image(naveX, naveY, nave_rotada);
-			//---------------------------------------------------- TECLADO FIN ----------------------
+			//----------------------------------------------------T E C L A D O   F I N -----------------------------------------------------------------
 
 
+//----------------------------------------------------BALAS
+			if (tecla == ventana.keycode("ARROWUP")) {
+
+				int balaX = naveX + (nave_rotada.width() / 2);
+				int balaY = naveY;
+
+				Bala nuevaBala;
+				nuevaBala.x = balaX;
+				nuevaBala.y = balaY;
+				nuevaBala.velocidad = 2;
+				balas.push_back(nuevaBala);
 
 
-			for (Bala& bala : balas) {
-				bala.disparo();
-				juego.draw_circle(bala.x, bala.y, 3, negro);
 			}
+			for (int i = 0; i < balas.size(); i++) {
+				Bala& bala = balas[i];
+				bala.y -= bala.velocidad;
+				juego.draw_circle(bala.x, bala.y, 3, negro);
+				if (bala.y < 0) {
+					balas.erase(balas.begin() + i);
+				}
+
+					/*for (Bala& bala : balas) {
+				 	bala.disparo();
+					juego.draw_circle(bala.x, bala.y, 3, negro);
+					}*/
+			}
+//-----------------------------------D E T E C C I O N   D E   C O L I S I O N   E N T R E   B A L A S   Y   M E T E O R I T O S-------------------------------------------------------
+			
+			// Colisión de meteoritos y balas
+			for (int i = 0; i < meteoritos.size(); i++) {
+				Meteorito& meteorito = meteoritos[i];
+
+				// Si el meteorito está dentro de los límites del área de la bala
+				for (int j = 0; j < balas.size(); j++) {
+					Bala& bala = balas[j];
+
+					// Verificar si el centro de la bala está dentro del meteorito
+					if (bala.x >= meteorito.x - radio && bala.x <= meteorito.x + radio &&
+						bala.y >= meteorito.y - radio && bala.y <= meteorito.y + radio) {
+						// Colisión detectada, eliminar bala y meteorito
+						balas.erase(balas.begin() + j);
+						meteoritos.erase(meteoritos.begin() + i);
+						break;  // Importante para salir del bucle interno
+					}
+				}
+			}
+//--------------------------------------------------------------------F I N   D E   C O L I S I O N ------------------------------------------------------------------------------------
+
+
+
 
 			int vidaX = 10; // Coordenada x inicial de las vidas
 			int vidaY = altura_ventana - 30; // Coordenada y fija de las vidas
+			
+			juego.draw_text(vidaX, altura_ventana - 53,("VIDA"),negro,50,1,25);
 			for (const auto& vidaImage : vidas) {
 				juego.draw_image(vidaX, vidaY, vidaImage);
 				//vida.resize(10 , altura_ventana - 10);
-				vidaX += 30; // Ajustar la posición para la siguiente vida
+				vidaX += 20; // Ajustar la posición para la siguiente vida
 			}
 			string anguloActual = "Angulo de  disparo: " + to_string(angulo);
-			juego.draw_text(ancho_ventana / 3, altura_ventana - 30, anguloActual.c_str(), angulo <= 30 ? rojo : negro, 100, 1, 25);
+			juego.draw_text(ancho_ventana / 2+75, altura_ventana - 30, anguloActual.c_str(), angulo <= 30 ? rojo : negro, 100, 1, 25);
 
 
 			chrono::steady_clock::time_point currentTime = chrono::steady_clock::now();
@@ -252,14 +323,17 @@ int main()
 
 			if (tiempoRestante <= 0) {
 				CImg<unsigned char>finaljuego(ancho_ventana, altura_ventana, 1, 3);
-				finaljuego.draw_text(ancho_ventana / 3, altura_ventana / 2, "Ganaste!!", negro, 50);
+				finaljuego.draw_text(ancho_ventana / 3, altura_ventana / 2, "You Win!!", negro, 50);
 				finaljuego.display(ventana);
-				this_thread::sleep_for(chrono::seconds(6));
+				//this_thread::sleep_for(chrono::seconds(6));
+				ventana.wait();
 				ventana.display(inicio);
 				lobby = true;
 
 			}
 
+//------------------------------------------------R E N D E R I Z A C I O N   D E   M E T E O R I T O S-------------------------------------------------------------------------------------
+//  
 			//genera los meteoritos
 			for (Meteorito& meteorito : meteoritos) {
 				//cout << "meteorito generado en la pos x: " << meteorito.x << "." << endl << endl << endl << endl << endl;
@@ -272,12 +346,16 @@ int main()
 					juego.draw_circle(meteorito.x, meteorito.y, 10, rojo);
 					meteorito.caer();
 
+
+//------------------------------------------------F I N  D E   R E N D E R I Z A C I O N ---------------------------------------------------------------------------------------------
 					//juego.fill()
 					//meteorito.meteorito_image.set_linear_atX(meteorito);
 						//juego.set
 					//juego.draw_circle(meteorito.x, meteorito.y, 10, rojo);
 
-					if (meteorito.y >= altura_ventana) {
+//----------------------------------------------------M A N E J O   D E   V I D A S---------------------------------------------------------------------------------------------------
+
+					if (meteorito.y >= altura_ventana) {//borra el meteorito que ya llego abajo
 						meteorito.borrarMeteorito();
 						meteoritos.erase(meteoritos.begin());
 					}
@@ -285,8 +363,8 @@ int main()
 					//meteoritos.erase(meteoritos.begin()+1);
 					for (int i = 0; i < meteoritos.size(); i++) {
 						Meteorito& meteorito = meteoritos[i];
-						//el meteorito ya llego abajo //  altura_ventana - 100 = EL FINAL DE ABAJO - 100 PIXELES
-						if (meteorito.y >= altura_ventana - 100) {
+						//el meteorito ya llego abajo //  altura_ventana - 55 = EL FINAL DE ABAJO - 55 PIXELES
+						if (meteorito.y >= altura_ventana - 55) {
 							if (vidasRestantes > 0) {//si el vector aun no esta vacido
 								vidasRestantes--;//restar una vida(eliminar un vector)
 								vidas.pop_back();
@@ -299,7 +377,7 @@ int main()
 						}
 
 					}
-					if (vidasRestantes == 0) {
+					if (vidasRestantes == 0) {//pantalla de cuando pierde por llegar a 0 vidas
 						CImg<unsigned char>gameover(ancho_ventana, altura_ventana, 1, 3);
 						gameover.draw_text(ancho_ventana / 3, altura_ventana / 2, "Game Over", negro, 50);
 						gameover.display(ventana);
