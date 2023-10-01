@@ -34,7 +34,7 @@ struct Meteorito {
 		this->x = _x; //GenerarAleatorio(0, 1200);
 		this->y = 20;
 		this->meteorito_image = imagePath;
-		this->meteorito_image.resize(50, 50);
+		this->meteorito_image.resize(25, 25);
 
 	}
 
@@ -134,6 +134,7 @@ int main()
 	//TEMPORIZADOR
 	chrono::steady_clock::time_point startTime;
 
+
 	while (!ventana.is_closed())
 	{
 
@@ -209,7 +210,7 @@ int main()
 			//nave.get_rotate(90);
 			//-------------------------------------------------------------------------------------------------------------------------------
 
-			clock_t tiempoActual = clock();
+			auto tiempoActual = chrono::high_resolution_clock::now();
 			//if ((tiempoActual - tiempoUltimoDisparo) * 1000 / CLOCKS_PER_SEC >= tiempoDeRetrasoEntreDisparos) {
 				//si espacio esta presionado
 
@@ -363,12 +364,13 @@ int main()
 			for (Meteorito& meteorito : meteoritos) {
 				//cout << "meteorito generado en la pos x: " << meteorito.x << "." << endl << endl << endl << endl << endl;
 				if (!meteorito.render) {
-					juego.draw_circle(meteorito.x, meteorito.y, 10, rojo);
+					//juego.draw_circle();
+					juego.draw_image(meteorito.x,meteorito.y,meteorito.meteorito_image);
 					meteorito.render = true;
 				}
 				else {
 					//meteorito.meteorito_image.fill(0);
-					juego.draw_circle(meteorito.x, meteorito.y, 10, rojo);
+					juego.draw_image(meteorito.x, meteorito.y, meteorito.meteorito_image);
 					meteorito.caer();
 
 
